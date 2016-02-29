@@ -99,6 +99,14 @@ to update the tab on any changes.
 Note: if the value gets cleared for some reason - qron will assume the tab is empty
 and will continue to run with nothing to publish.
 
+```
+loader:
+    type: redis
+    url: localhost:6379
+    db: 0
+    key: qrontab
+```
+
 ## Writers
 
 If a job matches current time then it will be published by qron writer.
