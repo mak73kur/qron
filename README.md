@@ -6,32 +6,43 @@ Qron is a simple scheduler for message queues.
 
 Download the latest release binary.
 
-Or using go tool:
+Or use go tool:
 
 ```
+# this will install the qron binary to your $GOPATH/bin
 $ go get github.com/mak73kur/qron/cmd/qron
 ```
 
-This will install the **qron** binary to your $GOPATH/bin directory.
-
 ## Usage
 
-Start the program:
+Run qron:
 
 ```
-$ ./qron path_to_config.ext
+$ ./qron /path/to/config.yml
 ```
 
-Config has two main sections:
+Example config:
+
+```
+loader:
+    type: inline
+    tab: |
+        * * * * * [every minute]
+
+writer:
+    type: log
+```
+
+There are two main sections:
 
 - **loader** which tells qron where should it look for a job schedule called *qrontab*.
-- **writer** that will decide where qron will publish messages.
+- **writer** that decides where to qron will publish messages.
 
-Specific config properties will depend on the chosen loader and writer types.
+Specific properties depend on the chosen loader and writer types.
 
-Thanks to spf13/viper config file supports different formats: JSON, TOML, YAML.
+Thanks to spf13/viper, config file supports different formats: json, toml, yaml.
 
-Program can be started without a config argument, then qron will look at the default location at /etc/qron.yml.
+If path argument is empty, qron by default will try /etc/qron.yml.
 
 ## Qrontab
 
@@ -81,7 +92,7 @@ loader:
 ### File source
 
 The file will be read once on program start. Sending SIGHUP will trigger file reread
-without a restart (this is also true about other loaders except for inline).
+without a restart (this is also true for redis loader).
 
 ```
 loader:
@@ -109,8 +120,8 @@ loader:
 
 ## Writers
 
-If a job matches current time then it will be published by qron writer.
-At this moment supported writers include following.
+Every minute qron checks whether a job matches the current time.
+If it does — qron writer will publish the job message.
 
 ### Log writer
 
@@ -122,7 +133,7 @@ writer.type: log
 
 ### AMQP writer
 
-AMQP writes messages to RabbitMQ or any other protocol implementations.
+AMQP writes messages to RabbitMQ or any other protocol implementation.
 
 ```
 writer:
