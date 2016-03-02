@@ -3,15 +3,11 @@ package loaders
 import "io/ioutil"
 
 type File struct {
-	path string
-}
-
-func NewFile(path string) File {
-	return File{path}
+	Path string
 }
 
 func (l File) Load() (string, error) {
-	data, err := ioutil.ReadFile(l.path)
+	data, err := ioutil.ReadFile(l.Path)
 	if err != nil {
 		return "", err
 	}

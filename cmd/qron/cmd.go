@@ -1,9 +1,9 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"log"
-	"os"
 
 	"github.com/spf13/viper"
 
@@ -12,6 +12,89 @@ import (
 	"github.com/mak73kur/qron/writers"
 )
 
+func init() {
+	confPath := *flag.String("c", "./qron.yml", "Path to the config file")
+	flag.Parse()
+	viper.SetConfigFile(confPath)
+}
+
+func requireConf(args ...string) error {
+	for _, arg := range args {
+		if !viper.IsSet(arg) {
+			return fmt.Errorf("Config is missing required parameter: %s", arg)
+		}
+	}
+	return nil
+}
+
+func createLoader() (qron.Loader, error) {
+	if err := requireConf("loader.type"); err != nil {
+		return nil, err
+	}
+
+	switch viper.GetString("loader.type") {
+
+	case "inline":
+		if err := requireConf("loader.tab"); err != nil {
+			return nil, err
+		}
+		return loaders.Inline{viper.GetString("loader.tab")}, nil
+
+	case "file":
+		if err := requireConf("loader.path"); err != nil {
+			return nil, err
+		}
+		return loaders.File{viper.GetString("loader.path")}, nil
+
+	case "redis":
+		if err := requireConf("loader.url", "loader.key"); err != nil {
+			return nil, err
+		}
+		loader, err := loaders.NewRedis(viper.GetString("loader.url"), viper.GetString("loader.key"))
+		if err != nil {
+			return nil, err
+		}
+		if viper.IsSet("loader.db") {
+			if err := loader.Select(viper.GetInt("db")); err != nil {
+				return nil, err
+			}
+		}
+		if viper.IsSet("loader.password") {
+			if err = loader.Auth(viper.GetString("loader.password")); err != nil {
+				return nil, err
+			}
+		}
+		return loader, nil
+
+	default:
+		return nil, fmt.Errorf("unknown loader type: %s", viper.GetString("loader.type"))
+	}
+}
+
+func createWriter() (qron.Writer, error) {
+	if err := requireConf("writer.type"); err != nil {
+		return nil, err
+	}
+
+	switch viper.GetString("writer.type") {
+
+	case "log":
+		return writers.Log{}, nil
+
+	case "amqp":
+		if err := requireConf("writer.url", "writer.exchange", "writer.routing_key"); err != nil {
+			return nil, err
+		}
+		return writers.NewAMQP(
+			viper.GetString("writer.url"),
+			viper.GetString("writer.exchange"),
+			viper.GetString("writer.routing_key"))
+
+	default:
+		return nil, fmt.Errorf("unknown writer type: %s", viper.GetString("writer.type"))
+	}
+}
+
 // stop program in case of error
 func check(err error) {
 	if err != nil {
@@ -19,69 +102,15 @@ func check(err error) {
 	}
 }
 
-func require(args ...string) {
-	for _, arg := range args {
-		if !viper.IsSet(arg) {
-			check(fmt.Errorf("Config is missing required parameter: %s", arg))
-		}
-	}
-}
-
-func init() {
-	if len(os.Args) > 1 {
-		viper.SetConfigFile(os.Args[1])
-	} else {
-		viper.SetConfigFile("/etc/qron.yml")
-	}
+func main() {
 	err := viper.ReadInConfig()
 	check(err)
-}
 
-func main() {
-	require("loader.type", "writer.type")
+	loader, err := createLoader()
+	check(err)
 
-	var (
-		loader qron.Loader
-		writer qron.Writer
-		err    error
-	)
-
-	switch viper.GetString("loader.type") {
-	case "inline":
-		require("loader.tab")
-		loader = loaders.NewInline(viper.GetString("loader.tab"))
-	case "file":
-		require("loader.path")
-		loader = loaders.NewFile(viper.GetString("loader.path"))
-	case "redis":
-		require("loader.url", "loader.key")
-
-		loader, err = loaders.NewRedis(viper.GetString("loader.url"), viper.GetString("loader.key"))
-		check(err)
-
-		if viper.IsSet("loader.db") {
-			err = loader.(*loaders.Redis).Select(viper.GetInt("db"))
-			check(err)
-		}
-		if viper.IsSet("loader.password") {
-			err = loader.(*loaders.Redis).Auth(viper.GetString("loader.password"))
-			check(err)
-		}
-	default:
-		check(fmt.Errorf("unknown loader type: %s", viper.GetString("loader.type")))
-	}
-
-	switch viper.GetString("writer.type") {
-	case "log":
-		writer = writers.Log{}
-	case "amqp":
-		require("writer.url", "writer.exchange", "writer.routing_key")
-		writer, err = writers.NewAMQP(viper.GetString("writer.url"), viper.GetString("writer.exchange"),
-			viper.GetString("writer.routing_key"))
-		check(err)
-	default:
-		check(fmt.Errorf("unknown writer type: %s", viper.GetString("writer.type")))
-	}
+	writer, err := createWriter()
+	check(err)
 
 	// create and load schedule
 	sch := qron.NewSchedule(loader, writer)

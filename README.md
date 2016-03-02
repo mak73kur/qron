@@ -6,10 +6,9 @@ Qron is a simple scheduler for message queues.
 
 Download the latest release binary.
 
-Or use go tool:
+Or use go tool. This will install the qron binary to your $GOPATH/bin:
 
 ```
-# this will install the qron binary to your $GOPATH/bin
 $ go get github.com/mak73kur/qron/cmd/qron
 ```
 
@@ -18,7 +17,7 @@ $ go get github.com/mak73kur/qron/cmd/qron
 Run qron:
 
 ```
-$ ./qron /path/to/config.yml
+$ qron -c /path/to/config.yml
 ```
 
 Example config:
@@ -42,7 +41,7 @@ Specific properties depend on the chosen loader and writer types.
 
 Thanks to spf13/viper, config file supports different formats: json, toml, yaml.
 
-If path argument is empty, qron by default will try /etc/qron.yml.
+If path argument is empty, qron by default will try ./qron.yml.
 
 ## Qrontab
 

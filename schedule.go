@@ -14,22 +14,22 @@ type Schedule struct {
 	w Writer
 
 	sync.Mutex
-	jobs []Job
+	tab []Job
 }
 
 func NewSchedule(l Loader, w Writer) *Schedule {
 	return &Schedule{l: l, w: w}
 }
 
-func (sch *Schedule) currentJobs() []Job {
+func (sch *Schedule) Tab() []Job {
 	sch.Lock()
 	defer sch.Unlock()
-	return sch.jobs
+	return sch.tab
 }
 
-func (sch *Schedule) setJobs(new []Job) {
+func (sch *Schedule) SetTab(new []Job) {
 	sch.Lock()
-	sch.jobs = new
+	sch.tab = new
 	sch.Unlock()
 }
 
@@ -56,9 +56,9 @@ func (sch *Schedule) LoadAndWatch() error {
 				if err := sch.load(); err != nil {
 					log.Println(err)
 				}
-			case tab := <-poll:
-				if jobs, err := ParseTab(tab); err == nil {
-					sch.setJobs(jobs)
+			case str := <-poll:
+				if tab, err := ParseTab(str); err == nil {
+					sch.SetTab(tab)
 				}
 			case err := <-pollErr:
 				log.Println("Tab polling error:", err)
@@ -69,16 +69,16 @@ func (sch *Schedule) LoadAndWatch() error {
 }
 
 func (sch *Schedule) load() error {
-	tab, err := sch.l.Load()
+	str, err := sch.l.Load()
 	if err != nil {
 		return err
 	}
-	jobs, err := ParseTab(tab)
+	tab, err := ParseTab(str)
 	if err != nil {
 		return err
 
 	}
-	sch.setJobs(jobs)
+	sch.SetTab(tab)
 	return nil
 }
 
@@ -95,7 +95,7 @@ func (sch *Schedule) Run() {
 }
 
 func (sch *Schedule) iterate(now time.Time) {
-	for _, job := range sch.currentJobs() {
+	for _, job := range sch.Tab() {
 		if job.Match(now) {
 			if err := sch.w.Write(job.Payload); err != nil {
 				log.Println(err)
