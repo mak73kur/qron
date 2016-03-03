@@ -50,17 +50,19 @@ func createLoader() (qron.Loader, error) {
 		if err := requireConf("loader.url", "loader.key"); err != nil {
 			return nil, err
 		}
-		loader, err := loaders.NewRedis(viper.GetString("loader.url"), viper.GetString("loader.key"))
+		loader, err := loaders.NewRedis(viper.GetString("loader.url"))
 		if err != nil {
 			return nil, err
 		}
-		if viper.IsSet("loader.db") {
-			if err := loader.Select(viper.GetInt("db")); err != nil {
+		loader.Key = viper.GetString("loader.key")
+
+		if viper.IsSet("loader.auth") {
+			if err = loader.Auth(viper.GetString("loader.auth")); err != nil {
 				return nil, err
 			}
 		}
-		if viper.IsSet("loader.password") {
-			if err = loader.Auth(viper.GetString("loader.password")); err != nil {
+		if viper.IsSet("loader.db") {
+			if err := loader.Select(viper.GetInt("loader.db")); err != nil {
 				return nil, err
 			}
 		}
@@ -89,6 +91,29 @@ func createWriter() (qron.Writer, error) {
 			viper.GetString("writer.url"),
 			viper.GetString("writer.exchange"),
 			viper.GetString("writer.routing_key"))
+
+	case "redis":
+		if err := requireConf("writer.url", "writer.key"); err != nil {
+			return nil, err
+		}
+		writer, err := writers.NewRedis(viper.GetString("writer.url"))
+		if err != nil {
+			return nil, err
+		}
+		writer.Key = viper.GetString("writer.key")
+		writer.LeftPush = viper.GetBool("writer.left_push")
+
+		if viper.IsSet("writer.auth") {
+			if err = writer.Auth(viper.GetString("writer.auth")); err != nil {
+				return nil, err
+			}
+		}
+		if viper.IsSet("loader.db") {
+			if err := writer.Select(viper.GetInt("writer.db")); err != nil {
+				return nil, err
+			}
+		}
+		return writer, nil
 
 	default:
 		return nil, fmt.Errorf("unknown writer type: %s", viper.GetString("writer.type"))

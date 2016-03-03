@@ -2,13 +2,13 @@
 
 Qron is a simple scheduler for message queues.
 
-# Install
+## Install
 
 Download the latest release binary.
 
 Or use go tool. This will install the qron binary to your $GOPATH/bin:
 
-```
+```Shell
 $ go get github.com/mak73kur/qron/cmd/qron
 ```
 
@@ -16,13 +16,13 @@ $ go get github.com/mak73kur/qron/cmd/qron
 
 Run qron:
 
-```
+```Shell
 $ qron -c /path/to/config.yml
 ```
 
 Example config:
 
-```
+```YAML
 loader:
     type: inline
     tab: |
@@ -72,15 +72,15 @@ Allowed parameter expressions:
 
 Qron will skip any lines that are empty or start with the comment characters (# or //).
 
-## Qrontab loaders
+### Qrontab loaders
 
 Tab can be loaded from one of the following sources.
 
-### Inline source
+#### Inline source
 
 Store the tab directly in the same config.
 
-```
+```YAML
 loader:
     type: inline
     tab: |
@@ -88,18 +88,18 @@ loader:
         */2 * * * * every two minutes
 ```
 
-### File source
+#### File source
 
 The file will be read once on program start. Sending SIGHUP will trigger file reread
 without a restart (this is also true for redis loader).
 
-```
+```YAML
 loader:
     type: file
     path: /tmp/qrontab
 ```
 
-### Redis source
+#### Redis source
 
 Tab is stored as a single string value in Redis DB.
 
@@ -109,32 +109,35 @@ to update the tab on any changes.
 Note: if the value gets cleared for some reason - qron will assume the tab is empty
 and will continue to run with nothing to publish.
 
-```
+```YAML
 loader:
     type: redis
     url: localhost:6379
-    db: 0
     key: qrontab
+    # optional, 0 by default
+    db: 0
+    # optional, redis auth password
+    auth: secret
 ```
 
-## Writers
+### Writers
 
 Every minute qron checks whether a job matches the current time.
 If it does — qron writer will publish the job message.
 
-### Log writer
+#### Log writer
 
 For debug purposes. Writes message directly to the program output.
 
-```
+```YAML
 writer.type: log
 ```
 
-### AMQP writer
+#### AMQP writer
 
 AMQP writes messages to RabbitMQ or any other protocol implementation.
 
-```
+```YAML
 writer:
     type: amqp
     url: amqp://localhost:5672
@@ -142,9 +145,26 @@ writer:
     routing_key: qron
 ```
 
+#### Redis writer
+
+Push messages into the Redis list. Use BRPOP or BLPOP at the consumer side.
+
+```YAML
+writer:
+    type: redis
+    url: localhost:6379
+    key: qron
+    # optional, 0 by default
+    db: 1
+    # optional, redis auth password
+    auth: secret
+    # optional, use LPUSH, default is RPUSH
+    left_push: true
+```
+
 ## TODO
 
 - [ ] verbose mode
 - [ ] proper godoc
 - [ ] tests for the base package
-- [ ] custom msg properties e.g. *ttl*
+- [ ] custom msg properties e.g. ttl, override key

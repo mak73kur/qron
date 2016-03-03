@@ -8,19 +8,19 @@ import (
 )
 
 type Redis struct {
-	Key string
-	p   *pool.Pool
+	p *pool.Pool
 
 	sync.Mutex
-	lt string
+	Key string
+	lt  string
 }
 
-func NewRedis(url, key string) (*Redis, error) {
+func NewRedis(url string) (*Redis, error) {
 	p, err := pool.New("tcp", url, 1)
 	if err != nil {
 		return nil, err
 	}
-	return &Redis{p: p, Key: key}, nil
+	return &Redis{p: p}, nil
 }
 
 func (r *Redis) Select(db int) error {
