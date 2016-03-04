@@ -6,35 +6,41 @@ import (
 	"fmt"
 	"regexp"
 	"strconv"
+	"strings"
 	"time"
+)
+
+const (
+	minute = iota
+	hour
+	dayOfMonth
+	month
+	dayOfWeek
 )
 
 type Job struct {
 	// Schedule parameters
-	Minute     []byte
-	Hour       []byte
-	DayOfMonth []byte
-	Month      []byte
-	DayOfWeek  []byte
+	Exp map[int]string
 	// Message body
 	Payload []byte
 }
 
 // Check if job should be executed at this time
 func (j Job) Match(now time.Time) bool {
-	return cmp(j.Minute, now.Minute()) &&
-		cmp(j.Hour, now.Hour()) &&
-		cmp(j.Month, int(now.Month())) &&
-		cmp(j.DayOfWeek, int(now.Weekday()))
+	return cmp(j.Exp[minute], now.Minute()) &&
+		cmp(j.Exp[hour], now.Hour()) &&
+		cmp(j.Exp[dayOfMonth], now.Day()) &&
+		cmp(j.Exp[month], int(now.Month())) &&
+		cmp(j.Exp[dayOfWeek], int(now.Weekday()))
 }
 
 // Compare the parameter expression with a given date property
-func cmp(expr []byte, now int) bool {
-	for _, v := range bytes.Split(expr, []byte(",")) {
-		if bytes.Equal(v, []byte("*")) || bytes.Equal(v, []byte(strconv.Itoa(now))) {
+func cmp(expr string, now int) bool {
+	for _, v := range strings.Split(expr, ",") {
+		if v == "*" || v == strconv.Itoa(now) {
 			return true
-		} else if len(v) > 2 && bytes.Equal(v[0:2], []byte("*/")) {
-			if div, _ := strconv.Atoi(string(v[2:])); div > 0 && now%div == 0 {
+		} else if len(v) > 2 && v[0:2] == "*/" {
+			if div, _ := strconv.Atoi(v[2:]); div > 0 && now%div == 0 {
 				return true
 			}
 		}
@@ -65,7 +71,7 @@ func ParseTab(src []byte) ([]Job, error) {
 
 // Create a job entity from a tab line
 func ParseJob(src []byte) (Job, error) {
-	job := Job{}
+	job := Job{Exp: map[int]string{}}
 	vals := bytes.SplitN(src, []byte(" "), 6)
 
 	if len(vals) < 6 {
@@ -73,25 +79,14 @@ func ParseJob(src []byte) (Job, error) {
 	}
 
 	for i, v := range vals {
-		if i < 5 {
+		switch {
+		case i < 5:
 			match, _ := regexp.Match("^([0-9,/\\*])+$", v)
 			if !match {
 				return job, fmt.Errorf("invalid expression in %d parameter: '%s'", i+1, v)
 			}
-		}
-
-		switch i {
-		case 0:
-			job.Minute = v
-		case 1:
-			job.Hour = v
-		case 2:
-			job.DayOfMonth = v
-		case 3:
-			job.Month = v
-		case 4:
-			job.DayOfWeek = v
-		case 5:
+			job.Exp[i] = string(v)
+		case i == 5:
 			job.Payload = v
 		}
 	}
