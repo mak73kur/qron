@@ -23,7 +23,7 @@ $ qron -c /path/to/config.yml
 Example config:
 
 ```YAML
-loader:
+reader:
     type: inline
     tab: |
         * * * * * [every minute]
@@ -34,10 +34,10 @@ writer:
 
 There are two main sections:
 
-- **loader** which tells qron where should it look for a job schedule called *qrontab*.
+- **reader** which tells qron where should it look for a job schedule called *qrontab*.
 - **writer** that decides where to qron will publish messages.
 
-Specific properties depend on the chosen loader and writer types.
+Specific properties depend on the chosen reader and writer types.
 
 Thanks to spf13/viper, config file supports different formats: json, toml, yaml.
 
@@ -72,7 +72,7 @@ Allowed parameter expressions:
 
 Qron will skip any lines that are empty or start with the comment characters (# or //).
 
-### Qrontab loaders
+### Qrontab readers
 
 Tab can be loaded from one of the following sources.
 
@@ -81,7 +81,7 @@ Tab can be loaded from one of the following sources.
 Store the tab directly in the same config.
 
 ```YAML
-loader:
+reader:
     type: inline
     tab: |
         * * * * * every minute
@@ -91,10 +91,10 @@ loader:
 #### File source
 
 The file will be read once on program start. Sending SIGHUP will trigger file reread
-without a restart (this is also true for redis loader).
+without a restart (this is also true for redis reader).
 
 ```YAML
-loader:
+reader:
     type: file
     path: /tmp/qrontab
 ```
@@ -110,7 +110,7 @@ Note: if the value gets cleared for some reason - qron will assume the tab is em
 and will continue to run with nothing to publish.
 
 ```YAML
-loader:
+reader:
     type: redis
     url: localhost:6379
     key: qrontab

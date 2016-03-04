@@ -1,4 +1,4 @@
-package writers
+package qron
 
 import (
 	"fmt"

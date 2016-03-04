@@ -1,11 +1,11 @@
-package writers
+package qron
 
 import "log"
 
 // Log is an example writer implementation that writes messages to program output
-type Log struct{}
+type LogWriter struct{}
 
-func (w Log) Write(msg []byte) error {
+func (w LogWriter) Write(msg []byte) error {
 	log.Println(string(msg))
 	return nil
 }

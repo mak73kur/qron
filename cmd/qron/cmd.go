@@ -5,11 +5,8 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/spf13/viper"
-
 	"github.com/mak73kur/qron"
-	"github.com/mak73kur/qron/loaders"
-	"github.com/mak73kur/qron/writers"
+	"github.com/spf13/viper"
 )
 
 func init() {
@@ -27,49 +24,41 @@ func requireConf(args ...string) error {
 	return nil
 }
 
-func createLoader() (qron.Loader, error) {
-	if err := requireConf("loader.type"); err != nil {
+func createReader() (qron.Reader, error) {
+	if err := requireConf("reader.type"); err != nil {
 		return nil, err
 	}
 
-	switch viper.GetString("loader.type") {
+	switch viper.GetString("reader.type") {
 
 	case "inline":
-		if err := requireConf("loader.tab"); err != nil {
+		if err := requireConf("reader.tab"); err != nil {
 			return nil, err
 		}
-		return loaders.Inline{viper.GetString("loader.tab")}, nil
+		return qron.InlineReader{[]byte(viper.GetString("reader.tab"))}, nil
 
 	case "file":
-		if err := requireConf("loader.path"); err != nil {
+		if err := requireConf("reader.path"); err != nil {
 			return nil, err
 		}
-		return loaders.File{viper.GetString("loader.path")}, nil
+		return qron.FileReader{viper.GetString("reader.path")}, nil
 
 	case "redis":
-		if err := requireConf("loader.url", "loader.key"); err != nil {
+		if err := requireConf("reader.url", "reader.key"); err != nil {
 			return nil, err
 		}
-		loader, err := loaders.NewRedis(viper.GetString("loader.url"))
+		reader, err := qron.NewRedisReader(
+			viper.GetString("reader.url"),
+			viper.GetString("reader.auth"),
+			viper.GetInt("reader.db"))
 		if err != nil {
 			return nil, err
 		}
-		loader.Key = viper.GetString("loader.key")
-
-		if viper.IsSet("loader.auth") {
-			if err = loader.Auth(viper.GetString("loader.auth")); err != nil {
-				return nil, err
-			}
-		}
-		if viper.IsSet("loader.db") {
-			if err := loader.Select(viper.GetInt("loader.db")); err != nil {
-				return nil, err
-			}
-		}
-		return loader, nil
+		reader.Key = viper.GetString("reader.key")
+		return reader, nil
 
 	default:
-		return nil, fmt.Errorf("unknown loader type: %s", viper.GetString("loader.type"))
+		return nil, fmt.Errorf("unknown reader type: %s", viper.GetString("reader.type"))
 	}
 }
 
@@ -81,13 +70,13 @@ func createWriter() (qron.Writer, error) {
 	switch viper.GetString("writer.type") {
 
 	case "log":
-		return writers.Log{}, nil
+		return qron.LogWriter{}, nil
 
 	case "amqp":
 		if err := requireConf("writer.url", "writer.exchange", "writer.routing_key"); err != nil {
 			return nil, err
 		}
-		return writers.NewAMQP(
+		return qron.NewAMQP(
 			viper.GetString("writer.url"),
 			viper.GetString("writer.exchange"),
 			viper.GetString("writer.routing_key"))
@@ -96,23 +85,15 @@ func createWriter() (qron.Writer, error) {
 		if err := requireConf("writer.url", "writer.key"); err != nil {
 			return nil, err
 		}
-		writer, err := writers.NewRedis(viper.GetString("writer.url"))
+		writer, err := qron.NewRedisWriter(
+			viper.GetString("reader.url"),
+			viper.GetString("reader.auth"),
+			viper.GetInt("reader.db"))
 		if err != nil {
 			return nil, err
 		}
 		writer.Key = viper.GetString("writer.key")
 		writer.LeftPush = viper.GetBool("writer.left_push")
-
-		if viper.IsSet("writer.auth") {
-			if err = writer.Auth(viper.GetString("writer.auth")); err != nil {
-				return nil, err
-			}
-		}
-		if viper.IsSet("loader.db") {
-			if err := writer.Select(viper.GetInt("writer.db")); err != nil {
-				return nil, err
-			}
-		}
 		return writer, nil
 
 	default:
@@ -131,14 +112,14 @@ func main() {
 	err := viper.ReadInConfig()
 	check(err)
 
-	loader, err := createLoader()
+	reader, err := createReader()
 	check(err)
 
 	writer, err := createWriter()
 	check(err)
 
 	// create and load schedule
-	sch := qron.NewSchedule(loader, writer)
+	sch := qron.NewSchedule(reader, writer)
 	check(sch.LoadAndWatch())
 
 	// start schedule ticker

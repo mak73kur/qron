@@ -10,15 +10,15 @@ import (
 )
 
 type Schedule struct {
-	l Loader
+	r Reader
 	w Writer
 
 	sync.Mutex
 	tab []Job
 }
 
-func NewSchedule(l Loader, w Writer) *Schedule {
-	return &Schedule{l: l, w: w}
+func NewSchedule(r Reader, w Writer) *Schedule {
+	return &Schedule{r: r, w: w}
 }
 
 func (sch *Schedule) Tab() []Job {
@@ -42,13 +42,11 @@ func (sch *Schedule) LoadAndWatch() error {
 	sig := make(chan os.Signal)
 	signal.Notify(sig, syscall.SIGHUP)
 
-	// loader can implement its own watch routine
-	poll := make(chan string)
-	pollErr := make(chan error)
-	if poller, ok := sch.l.(Poller); ok {
-		go poller.Poll(poll, pollErr)
+	// reader can implement its own watch routine
+	upd := make(chan []byte)
+	if watcher, ok := sch.r.(Watcher); ok {
+		go watcher.Watch(upd)
 	}
-
 	go func() {
 		for {
 			select {
@@ -56,12 +54,12 @@ func (sch *Schedule) LoadAndWatch() error {
 				if err := sch.load(); err != nil {
 					log.Println(err)
 				}
-			case str := <-poll:
-				if tab, err := ParseTab(str); err == nil {
+			case tab := <-upd:
+				if tab, err := ParseTab(tab); err == nil {
 					sch.SetTab(tab)
+				} else {
+					log.Println(err)
 				}
-			case err := <-pollErr:
-				log.Println("Tab polling error:", err)
 			}
 		}
 	}()
@@ -69,11 +67,11 @@ func (sch *Schedule) LoadAndWatch() error {
 }
 
 func (sch *Schedule) load() error {
-	str, err := sch.l.Load()
+	b, err := sch.r.Read()
 	if err != nil {
 		return err
 	}
-	tab, err := ParseTab(str)
+	tab, err := ParseTab(b)
 	if err != nil {
 		return err
 
