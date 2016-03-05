@@ -9,16 +9,55 @@ import (
 	"github.com/spf13/viper"
 )
 
+var (
+	confPath string
+	v1       bool
+	v2       bool
+)
+
 func init() {
-	confPath := *flag.String("c", "./qron.yml", "Path to the config file")
+	flag.StringVar(&confPath, "c", "./qron.yml", "Path to the config file")
+	flag.BoolVar(&v1, "v", false, "Verbose level info")
+	flag.BoolVar(&v2, "vv", false, "Verbose level debug")
+}
+
+func main() {
 	flag.Parse()
+	if v2 {
+		qron.SetVerbose(2)
+	} else if v1 {
+		qron.SetVerbose(1)
+	}
 	viper.SetConfigFile(confPath)
+
+	err := viper.ReadInConfig()
+	check(err)
+
+	reader, err := createReader()
+	check(err)
+
+	writer, err := createWriter()
+	check(err)
+
+	// create and load schedule
+	sch := qron.NewSchedule(reader, writer)
+	check(sch.LoadAndWatch())
+
+	// start schedule ticker
+	sch.Run()
+}
+
+// stop program in case of error
+func check(err error) {
+	if err != nil {
+		log.Fatalln("[ERR]", err)
+	}
 }
 
 func requireConf(args ...string) error {
 	for _, arg := range args {
 		if !viper.IsSet(arg) {
-			return fmt.Errorf("Config is missing required parameter: %s", arg)
+			return fmt.Errorf("config is missing required parameter: %s", arg)
 		}
 	}
 	return nil
@@ -99,29 +138,4 @@ func createWriter() (qron.Writer, error) {
 	default:
 		return nil, fmt.Errorf("unknown writer type: %s", viper.GetString("writer.type"))
 	}
-}
-
-// stop program in case of error
-func check(err error) {
-	if err != nil {
-		log.Fatalln(err)
-	}
-}
-
-func main() {
-	err := viper.ReadInConfig()
-	check(err)
-
-	reader, err := createReader()
-	check(err)
-
-	writer, err := createWriter()
-	check(err)
-
-	// create and load schedule
-	sch := qron.NewSchedule(reader, writer)
-	check(sch.LoadAndWatch())
-
-	// start schedule ticker
-	sch.Run()
 }

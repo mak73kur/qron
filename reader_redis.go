@@ -59,6 +59,7 @@ func (r *RedisReader) Watch(ch chan<- []byte) {
 
 		tab, err := r.load()
 		if err != nil {
+			writeLog(lvlError, err.Error())
 			continue
 		}
 		if !bytes.Equal(r.lastTab(), tab) {

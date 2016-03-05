@@ -1,7 +1,7 @@
 package qron
 
 import (
-	"log"
+	"fmt"
 	"os"
 	"os/signal"
 	"sync"
@@ -51,14 +51,16 @@ func (sch *Schedule) LoadAndWatch() error {
 		for {
 			select {
 			case <-sig:
+				writeLog(lvlInfo, "trapped the signal to reload qron tab")
 				if err := sch.load(); err != nil {
-					log.Println(err)
+					writeLog(lvlError, err.Error())
 				}
 			case tab := <-upd:
+				writeLog(lvlInfo, "qron tab changed, updating schedule...")
 				if tab, err := ParseTab(tab); err == nil {
 					sch.SetTab(tab)
 				} else {
-					log.Println(err)
+					writeLog(lvlError, err.Error())
 				}
 			}
 		}
@@ -95,8 +97,9 @@ func (sch *Schedule) Run() {
 func (sch *Schedule) iterate(now time.Time) {
 	for _, job := range sch.Tab() {
 		if job.Match(now) {
+			writeLog(lvlDebug, fmt.Sprintf("publish: %s", job.Payload))
 			if err := sch.w.Write(job.Payload); err != nil {
-				log.Println(err)
+				writeLog(lvlError, err.Error())
 			}
 		}
 	}

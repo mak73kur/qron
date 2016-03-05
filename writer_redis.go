@@ -26,6 +26,6 @@ func (r *RedisWriter) Write(msg []byte) error {
 	} else {
 		cmd = "RPUSH"
 	}
-	res := r.p.Cmd(cmd, r.Key)
+	res := r.p.Cmd(cmd, r.Key, msg)
 	return res.Err
 }

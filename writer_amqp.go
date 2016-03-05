@@ -2,7 +2,6 @@ package qron
 
 import (
 	"fmt"
-	"log"
 	"sync"
 	"time"
 
@@ -42,7 +41,7 @@ func (q *AMQP) Connect() error {
 	}
 	channel, err := connection.Channel()
 	if err != nil {
-		return fmt.Errorf("Failed to open a channel: %s", err)
+		return fmt.Errorf("failed to open a channel: %s", err)
 	}
 
 	if q.Exchange != "" {
@@ -56,16 +55,16 @@ func (q *AMQP) Connect() error {
 			nil,        // arguments
 		)
 		if err != nil {
-			return fmt.Errorf("Failed to declare an exchange: %s", err)
+			return fmt.Errorf("failed to declare an exchange: %s", err)
 		}
 	}
 
 	q.channel = channel
 	go func() {
-		log.Printf("Closing: %s", <-connection.NotifyClose(make(chan *amqp.Error)))
-		log.Printf("Trying to reconnect")
+		writeLog(lvlInfo, fmt.Sprintf("closing: %s ", <-connection.NotifyClose(make(chan *amqp.Error))))
+		writeLog(lvlInfo, "trying to reconnect")
 		for err := q.Connect(); err != nil; err = q.Connect() {
-			log.Println(err)
+			writeLog(lvlError, err.Error())
 			time.Sleep(5 * time.Second)
 		}
 
@@ -91,7 +90,7 @@ func (q *AMQP) Write(msgBody []byte) error {
 			Body:        msgBody,
 		})
 	if err != nil {
-		return fmt.Errorf("Failed to send amqp message: %s", err)
+		return fmt.Errorf("failed to send amqp message: %s", err)
 	}
 	return nil
 }

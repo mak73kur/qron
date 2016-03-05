@@ -14,10 +14,10 @@ $ go get github.com/mak73kur/qron/cmd/qron
 
 ## Usage
 
-Run qron:
+Run qron (in a verbose mode):
 
 ```Shell
-$ qron -c /path/to/config.yml
+$ qron -c /path/to/config.yml -v
 ```
 
 Example config:
@@ -41,7 +41,7 @@ Specific properties depend on the chosen reader and writer types.
 
 Thanks to spf13/viper, config file supports different formats: json, toml, yaml.
 
-If path argument is empty, qron by default will try ./qron.yml.
+If path argument is empty, qron will try ./qron.yml by default.
 
 ## Qrontab
 
@@ -147,7 +147,7 @@ writer:
 
 #### Redis writer
 
-Push messages into the Redis list. Use BRPOP or BLPOP at the consumer side.
+Push messages into the Redis list. Consumer side can use BRPOP or BLPOP to receive them.
 
 ```YAML
 writer:
@@ -158,13 +158,13 @@ writer:
     db: 1
     # optional, redis auth password
     auth: secret
-    # optional, use LPUSH, default is RPUSH
+    # optionaly use LPUSH, default is RPUSH
     left_push: true
 ```
 
 ## TODO
 
-- [ ] verbose mode
+- [x] verbose mode
 - [ ] proper godoc
 - [ ] tests for the base package
 - [ ] custom msg properties e.g. ttl, override key
