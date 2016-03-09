@@ -19,13 +19,19 @@ func NewRedisWriter(url, auth string, db int) (*RedisWriter, error) {
 	return &RedisWriter{p: p}, nil
 }
 
-func (r *RedisWriter) Write(msg []byte) error {
+func (r *RedisWriter) Write(msg []byte, tags map[string]interface{}) error {
+	key := r.Key
+	if tk, ok := tags["key"]; ok {
+		if sk, ok := tk.(string); ok && sk != "" {
+			key = sk
+		}
+	}
 	var cmd string
 	if r.LeftPush {
 		cmd = "LPUSH"
 	} else {
 		cmd = "RPUSH"
 	}
-	res := r.p.Cmd(cmd, r.Key, msg)
+	res := r.p.Cmd(cmd, key, msg)
 	return res.Err
 }

@@ -118,7 +118,7 @@ func createWriter() (qron.Writer, error) {
 		return qron.NewAMQP(
 			viper.GetString("writer.url"),
 			viper.GetString("writer.exchange"),
-			viper.GetString("writer.routing_key"))
+			viper.GetString("writer.key"))
 
 	case "redis":
 		if err := requireConf("writer.url", "writer.key"); err != nil {

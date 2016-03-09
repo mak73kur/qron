@@ -69,6 +69,7 @@ func (sch *Schedule) LoadAndWatch() error {
 }
 
 func (sch *Schedule) load() error {
+	writeLog(lvlDebug, "loading qron tab")
 	b, err := sch.r.Read()
 	if err != nil {
 		return err
@@ -97,8 +98,8 @@ func (sch *Schedule) Run() {
 func (sch *Schedule) iterate(now time.Time) {
 	for _, job := range sch.Tab() {
 		if job.Match(now) {
-			writeLog(lvlDebug, fmt.Sprintf("publish: %s", job.Payload))
-			if err := sch.w.Write(job.Payload); err != nil {
+			writeLog(lvlDebug, fmt.Sprintf("matched %+v, publishing: %s, tags: %+v", job.Exp, job.Payload, job.Tags))
+			if err := sch.w.Write([]byte(job.Payload), job.Tags); err != nil {
 				writeLog(lvlError, err.Error())
 			}
 		}

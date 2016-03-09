@@ -1,5 +1,5 @@
 package qron
 
 type Writer interface {
-	Write([]byte) error
+	Write([]byte, map[string]interface{}) error
 }

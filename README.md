@@ -26,7 +26,7 @@ Example config:
 reader:
     type: inline
     tab: |
-        * * * * * [every minute]
+        * * * * * every minute
 
 writer:
     type: log
@@ -34,7 +34,7 @@ writer:
 
 There are two main sections:
 
-- **reader** which tells qron where should it look for a job schedule called *qrontab*.
+- **reader** which tells qron where should it look for a job schedule called *qron tab*.
 - **writer** that decides where to qron will publish messages.
 
 Specific properties depend on the chosen reader and writer types.
@@ -43,13 +43,13 @@ Thanks to spf13/viper, config file supports different formats: json, toml, yaml.
 
 If path argument is empty, qron will try ./qron.yml by default.
 
-## Qrontab
+## Qron tab
 
 Each line is a new job.
 
 Parameters should be separated by a single whitespace character.
 
-First five are schedule parameters, sixth is a message body.
+First five are schedule parameters, sixth is a message body. Another optional parameter is tags, see below.
 
 Message body can have whitespace or any other character, except newline.
 
@@ -72,7 +72,11 @@ Allowed parameter expressions:
 
 Qron will skip any lines that are empty or start with the comment characters (# or //).
 
-### Qrontab readers
+Message can be followed by tag options for this job - JSON object enclosed in back quotes e.g. `` `{"ttl":"1m","key":"qron2"}` ``.
+
+Actual effect (if any) of these tags ensured by the writer implementation.
+
+### Qron tab readers
 
 Tab can be loaded from one of the following sources.
 
@@ -142,7 +146,18 @@ writer:
     type: amqp
     url: amqp://localhost:5672
     exchange: ""
-    routing_key: qron
+    key: qron
+```
+
+
+AMQP handles two tag options:
+
+- **key** - overrides routing key for this message.
+- **ttl** - message expiration, see [rabbitmq docs](https://www.rabbitmq.com/ttl.html#per-message-ttl);
+ttl value can be either number of seconds or string duration, such as 2h45m30s.
+
+```
+* * * * * every minute `{"ttl":"1m","key":"ticker"}`
 ```
 
 #### Redis writer
@@ -162,9 +177,15 @@ writer:
     left_push: true
 ```
 
+Redis supports **key** tag to override list key for any given job.
+
+```
+* * * * * every minute `{"key":"ticker"}`
+```
+
 ## TODO
 
 - [x] verbose mode
+- [x] custom msg options
 - [ ] proper godoc
 - [ ] tests for the base package
-- [ ] custom msg properties e.g. ttl, override key

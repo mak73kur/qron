@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"sync"
 	"time"
+	"strconv"
 
 	"github.com/streadway/amqp"
 )
@@ -76,17 +77,36 @@ func (q *AMQP) Close() error {
 	return q.channel.Close()
 }
 
-func (q *AMQP) Write(msgBody []byte) error {
+func (q *AMQP) Write(msgBody []byte, tags map[string]interface{}) error {
 	q.Lock()
 	defer q.Unlock()
 
+	key := q.RoutingKey
+	expiration := ""
+	if ikey, ok := tags["key"]; ok {
+		if skey, ok := ikey.(string); ok && skey != "" {
+			key = skey
+		}
+	}
+	if ittl, ok := tags["ttl"]; ok {
+		if sttl, ok := ittl.(string); ok && sttl != "" {
+			if ttl, err := time.ParseDuration(sttl); err == nil {
+				expiration = strconv.FormatInt(ttl.Nanoseconds()/time.Millisecond.Nanoseconds(), 10)
+			}
+		} else if fttl, ok := ittl.(float64); ok && fttl > 0 {
+			expiration = strconv.Itoa(int(fttl * 1000))
+		}
+	}
+
 	err := q.channel.Publish(
-		q.Exchange,   // exchange
-		q.RoutingKey, // routing key
-		false,        // mandatory
-		false,        // immediate
+		q.Exchange, // exchange
+		key,        // routing key
+		false,      // mandatory
+		false,      // immediate
 		amqp.Publishing{
 			ContentType: "text/plain",
+			Expiration:  expiration,
+			Timestamp:   time.Now(),
 			Body:        msgBody,
 		})
 	if err != nil {
