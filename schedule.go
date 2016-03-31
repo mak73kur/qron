@@ -90,7 +90,7 @@ func (sch *Schedule) Run() {
 
 	// Schedule first run and start the ticker routine
 	go sch.iterate(time.Now().UTC())
-	for now := range time.Tick(time.Second) {
+	for now := range time.Tick(time.Minute) {
 		go sch.iterate(now.UTC())
 	}
 }
