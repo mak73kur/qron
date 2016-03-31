@@ -2,9 +2,9 @@ package qron
 
 import (
 	"fmt"
+	"strconv"
 	"sync"
 	"time"
-	"strconv"
 
 	"github.com/streadway/amqp"
 )

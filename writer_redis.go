@@ -7,8 +7,8 @@ import (
 type RedisWriter struct {
 	p *pool.Pool
 
-	Key      string
-	LeftPush bool
+	Key   string
+	LPush bool
 }
 
 func NewRedisWriter(url, auth string, db int) (*RedisWriter, error) {
@@ -27,7 +27,7 @@ func (r *RedisWriter) Write(msg []byte, tags map[string]interface{}) error {
 		}
 	}
 	var cmd string
-	if r.LeftPush {
+	if r.LPush {
 		cmd = "LPUSH"
 	} else {
 		cmd = "RPUSH"

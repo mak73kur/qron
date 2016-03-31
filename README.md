@@ -174,13 +174,33 @@ writer:
     # optional, redis auth password
     auth: secret
     # optionaly use LPUSH, default is RPUSH
-    left_push: true
+    lpush: true
 ```
 
 Redis supports **key** tag to override list key for any given job.
 
 ```
 * * * * * every minute `{"key":"ticker"}`
+```
+
+
+#### HTTP writer
+
+Send messages as HTTP requests.
+
+```YAML
+writer:
+    type: http
+    url: https://destination-site.com/consume
+    method: POST
+    headers:
+    - X-AUTH: "token"
+```
+
+HTT supports **url**, **method** and **headers** tags to override URL or add headers for any given job.
+
+```
+* * * * * every minute `{ "headers": ["X-Auth":"token2"] }`
 ```
 
 ## TODO

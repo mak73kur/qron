@@ -132,7 +132,18 @@ func createWriter() (qron.Writer, error) {
 			return nil, err
 		}
 		writer.Key = viper.GetString("writer.key")
-		writer.LeftPush = viper.GetBool("writer.left_push")
+		writer.LPush = viper.GetBool("writer.lpush")
+		return writer, nil
+
+	case "http":
+		if err := requireConf("writer.url", "writer.method"); err != nil {
+			return nil, err
+		}
+		writer := qron.HTTPWriter{
+			URL:     viper.GetString("writer.url"),
+			Method:  viper.GetString("writer.method"),
+			Headers: viper.GetStringMapString("writer.headers"),
+		}
 		return writer, nil
 
 	default:
