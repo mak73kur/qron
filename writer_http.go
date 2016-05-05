@@ -33,6 +33,7 @@ func (w HTTPWriter) Write(msgBody []byte, tags map[string]interface{}) error {
 		}
 	}
 
+	writeLog(lvlDebug, "making http request to " + url)
 	req, err := http.NewRequest(url, method, bytes.NewBuffer(msgBody))
 	if err != nil {
 		return err
@@ -49,5 +50,5 @@ func (w HTTPWriter) Write(msgBody []byte, tags map[string]interface{}) error {
 	if res.StatusCode >= 400 {
 		return fmt.Errorf("failed to make http request, response code is %d", res.StatusCode)
 	}
-	return nil
+	return err
 }
