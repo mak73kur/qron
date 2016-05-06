@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"net/http"
+	"io/ioutil"
 )
 
 type HTTPWriter struct {
@@ -13,7 +14,7 @@ type HTTPWriter struct {
 }
 
 func (w HTTPWriter) Write(msgBody []byte, tags map[string]interface{}) error {
-	url, method, headers := w.Method, w.URL, w.Headers
+	url, method, headers := w.URL, w.Method, w.Headers
 
 	if tu, ok := tags["url"]; ok {
 		if su, ok := tu.(string); ok && su != "" {
@@ -34,7 +35,7 @@ func (w HTTPWriter) Write(msgBody []byte, tags map[string]interface{}) error {
 	}
 
 	writeLog(lvlDebug, "making http request to " + url)
-	req, err := http.NewRequest(url, method, bytes.NewBuffer(msgBody))
+	req, err := http.NewRequest(method, url, bytes.NewBuffer(msgBody))
 	if err != nil {
 		return err
 	}
@@ -47,6 +48,13 @@ func (w HTTPWriter) Write(msgBody []byte, tags map[string]interface{}) error {
 
 	httpClient := &http.Client{}
 	res, err := httpClient.Do(req)
+
+	if verb >= lvlDebug {
+		respBody, _ := ioutil.ReadAll(res.Body)
+		res.Body.Close()
+		writeLog(lvlDebug, fmt.Sprintf("http response %d, %s", res.StatusCode, respBody))
+	}
+
 	if res.StatusCode >= 400 {
 		return fmt.Errorf("failed to make http request, response code is %d", res.StatusCode)
 	}

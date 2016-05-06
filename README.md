@@ -194,8 +194,8 @@ writer:
     url: https://destination-site.com/consume
     method: POST
     headers:
-    - X-Auth: "token"
-    - Content-Type: "application/x-www-form-urlencoded"
+        X-Auth: "token"
+        Content-Type: "application/x-www-form-urlencoded"
 ```
 
 HTT supports **url**, **method** and **headers** tags to override URL or add headers for any given job.
